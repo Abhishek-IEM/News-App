@@ -3,64 +3,76 @@ let cardData = document.querySelector(".cardData");
 let SearchBtn = document.getElementById("searchBtn");
 let inputData = document.getElementById("inputData");
 let searchType = document.getElementById("type");
+let loader = document.getElementById("loader");
+let darkModeBtn = document.getElementById("darkModeBtn");
 
 const getData = async (input) => {
-  let res = await fetch(
-    `https://newsapi.org/v2/everything?q=${input}&apiKey=${key}`
-  );
-  let jsonData = await res.json();
-  console.log(jsonData.articles);
-
-  searchType.innerText = "Search : " + input;
-  inputData.value = "";
+  loader.style.display = "block";
   cardData.innerHTML = "";
+  searchType.innerText = `Search: ${input}`;
 
-  jsonData.articles.forEach(function (article) {
-    console.log(article);
+  try {
+    let res = await fetch(
+      `https://newsapi.org/v2/everything?q=${input}&apiKey=${key}`
+    );
+    let jsonData = await res.json();
+    loader.style.display = "none";
 
-    let divs = document.createElement("div");
-    divs.classList.add("card");
-    cardData.appendChild(divs);
+    if (!jsonData.articles || jsonData.articles.length === 0) {
+      cardData.innerHTML = "<p style='text-align:center;'>No news found.</p>";
+      return;
+    }
 
-    divs.innerHTML = `
-      <img src="${article.urlToImage}" alt="" srcset="" />
-      <h3>${article.title}</h3>
-      <p>${article.description}</p>
-    `;
-    divs.addEventListener("click", function(){
-      window.open(article.url);
+    jsonData.articles.forEach((article) => {
+      let divs = document.createElement("div");
+      divs.classList.add("card");
+
+      divs.innerHTML = `
+        <img src="${article.urlToImage || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="News Image" />
+        <h3>${article.title || 'No title available'}</h3>
+        <p>${article.description || 'No description available'}</p>
+      `;
+
+      divs.addEventListener("click", function () {
+        window.open(article.url, "_blank", "noopener");
+      });
+
+      cardData.appendChild(divs);
     });
-
-  });
+  } catch (error) {
+    loader.style.display = "none";
+    cardData.innerHTML = "<p style='text-align:center;color:red;'>Error loading news.</p>";
+  }
 };
 
 window.addEventListener("load", function () {
-  //searchType.innerText = "Search : " + "India";
   getData("India");
 });
 
+
 SearchBtn.addEventListener("click", function () {
-  let inputText = inputData.value;
-  getData(inputText);
+  let inputText = inputData.value.trim();
+  if (inputText) getData(inputText);
+  inputData.value = "";
+});
+
+inputData.addEventListener("keypress", function (e) {
+  if (e.key === "Enter") {
+    let inputText = inputData.value.trim();
+    if (inputText) getData(inputText);
+    inputData.value = "";
+  }
 });
 
 function navClick(navName) {
-  if (navName == "politics") {
-    document.getElementById("politics").style.color = "rgb(0, 140, 255)";
-    document.getElementById("sports").style.color = "white";
-    document.getElementById("technology").style.color = "white";
-  }
-
-  if (navName == "sports") {
-    document.getElementById("politics").style.color = "white";
-    document.getElementById("sports").style.color = "rgb(0, 140, 255)";
-    document.getElementById("technology").style.color = "white";
-  }
-
-  if (navName == "technology") {
-    document.getElementById("politics").style.color = "white";
-    document.getElementById("sports").style.color = "white";
-    document.getElementById("technology").style.color = "rgb(0, 140, 255)";
-  }
+  document.querySelectorAll(".logo li").forEach((li) => li.classList.remove("active"));
+  document.getElementById(navName).classList.add("active");
   getData(navName);
 }
+
+darkModeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  darkModeBtn.textContent = document.body.classList.contains("dark")
+    ? "☀️ Light Mode"
+    : "🌙 Dark Mode";
+});
